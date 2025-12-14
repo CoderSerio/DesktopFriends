@@ -7,6 +7,12 @@ on:
     tags:
       - 'v*'  # 也支持 tag 触发，如 v1.0.0
 
+# 👇权限配置
+permissions:
+  contents: write  # 允许创建 releases 和 tags
+  packages: read   # 允许读取包（如有需要）
+  actions: read    # 允许读取工作流状态
+  
 # 防止同时运行多个工作流
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

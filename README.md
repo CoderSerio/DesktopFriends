@@ -10,6 +10,12 @@
 
 将旧 Android 手机变成可爱的 Live2D 桌面宠物，接入大模型进行智能对话，支持局域网内多设备宠物互相交流。
 
+## 演示
+感谢[@碳苯 Carbon](https://github.com/CoderSerio)提供的live2D模型，他真的很可爱！
+
+  ![描述文字](./assets/ezgif-544a92538432332a.gif)
+
+
 ## 特性
 
 - **Live2D 渲染** - 流畅的 Live2D 模型展示，支持动作和表情切换
@@ -21,10 +27,6 @@
 - **模型上传** - 支持上传 zip 格式的 Live2D 模型包
 - **背景自定义** - 自定义背景图片或选择预设渐变
 - **聊天记录** - 完整的聊天历史记录，支持导出
-
-## 演示
-感谢[@碳苯 Carbon](https://github.com/CoderSerio)提供的live2D模型，他真的很可爱！
-<img src="./assets/demo.gif" width="300" alt="演示">
 
 ## 技术栈
 

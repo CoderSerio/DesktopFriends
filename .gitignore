@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.local
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Capacitor
+apps/mobile/android/
+apps/mobile/ios/
+
+# TypeScript
+*.tsbuildinfo
+
+# Test
+coverage/
+
+# Build artifacts
+apps/server/dist/
+apps/mobile/dist/
+
+# Live2D models (add your own models, respect copyright)
+apps/mobile/public/models/*
+!apps/mobile/public/models/.gitkeep
+apps/mobile/public/modules/TanBen_origin
+
+# Claude Code config
+.claude/

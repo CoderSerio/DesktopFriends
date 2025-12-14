@@ -1,0 +1,24 @@
+{
+  "name": "desktopfriends",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Live2D 桌面宠物 - 将旧手机变成可爱的桌面伴侣",
+  "scripts": {
+    "dev:mobile": "pnpm --filter @desktopfriends/mobile dev",
+    "dev:server": "pnpm --filter @desktopfriends/server dev",
+    "build:mobile": "pnpm --filter @desktopfriends/mobile build",
+    "build:server": "pnpm --filter @desktopfriends/server build",
+    "android:sync": "pnpm build:mobile && cd apps/mobile && npx cap sync android",
+    "android:open": "cd apps/mobile && npx cap open android",
+    "android:debug": "pnpm android:sync && cd apps/mobile/android && ./gradlew assembleDebug",
+    "android:release": "pnpm android:sync && cd apps/mobile/android && ./gradlew assembleRelease"
+  },
+  "keywords": [
+    "live2d",
+    "desktop-pet",
+    "capacitor",
+    "android"
+  ],
+  "author": "",
+  "license": "MIT"
+}

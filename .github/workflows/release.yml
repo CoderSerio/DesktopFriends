@@ -1,0 +1,149 @@
+name: Build and Release APK
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'  # 也支持 tag 触发，如 v1.0.0
+
+# 防止同时运行多个工作流
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build shared package
+        run: pnpm --filter @desktopfriends/shared build
+
+      - name: Build mobile app
+        run: pnpm build:mobile
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Add Capacitor Android platform
+        working-directory: apps/mobile
+        run: npx cap add android || true  # 如果已存在则忽略错误
+
+      - name: Sync Capacitor
+        working-directory: apps/mobile
+        run: npx cap sync android
+
+      - name: Make gradlew executable
+        working-directory: apps/mobile/android
+        run: chmod +x ./gradlew
+
+      - name: Build Debug APK
+        working-directory: apps/mobile/android
+        run: ./gradlew assembleDebug
+
+      - name: Build Release APK
+        working-directory: apps/mobile/android
+        run: ./gradlew assembleRelease
+
+      - name: Get version info
+        id: version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION="build-$(date +'%Y%m%d')-${GITHUB_SHA::7}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Rename APK files
+        run: |
+          mv apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk \
+             apps/mobile/android/app/build/outputs/apk/debug/DesktopFriends-${{ steps.version.outputs.version }}-debug.apk
+          mv apps/mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk \
+             apps/mobile/android/app/build/outputs/apk/release/DesktopFriends-${{ steps.version.outputs.version }}-release.apk
+
+      - name: Upload Debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk
+          path: apps/mobile/android/app/build/outputs/apk/debug/*.apk
+
+      - name: Upload Release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
+
+      # 只在 tag 推送时创建 Release
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            apps/mobile/android/app/build/outputs/apk/debug/DesktopFriends-${{ steps.version.outputs.version }}-debug.apk
+            apps/mobile/android/app/build/outputs/apk/release/DesktopFriends-${{ steps.version.outputs.version }}-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 每次 main 推送都更新 latest release
+      - name: Update Latest Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest Build
+          draft: false
+          prerelease: true
+          body: |
+            ## 最新开发版本
+
+            构建时间: ${{ github.event.head_commit.timestamp }}
+            提交: ${{ github.sha }}
+
+            > ⚠️ 这是自动构建的开发版本，可能不稳定
+          files: |
+            apps/mobile/android/app/build/outputs/apk/debug/DesktopFriends-${{ steps.version.outputs.version }}-debug.apk
+            apps/mobile/android/app/build/outputs/apk/release/DesktopFriends-${{ steps.version.outputs.version }}-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed } from "vue";
 import HomeView from "./views/HomeView.vue";
 import SettingsView from "./views/SettingsView.vue";
 

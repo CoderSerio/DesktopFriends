@@ -10,6 +10,7 @@ export {
 export { useChatHistory } from './composables/useChatHistory'
 export { useServerDiscovery } from './composables/useServerDiscovery'
 export { useWebSocket } from './composables/useWebSocket'
+export { useXiaoZhi } from './composables/useXiaoZhi'
 
 // 类型导出
 export type { ChatMessage } from './types'
@@ -18,6 +19,16 @@ export type { WebSocketOptions, WebSocketMessage, WebSocketStatus } from './comp
 export type { ChatResponse } from './composables/useChat'
 export type { ToolCall } from './composables/useLive2DTools'
 export type { DiscoveredServer } from './composables/useServerDiscovery'
+export type {
+  XiaoZhiConfig,
+  XiaoZhiOtaResponse,
+  XiaoZhiConnectResult,
+  XiaoZhiMessage,
+  XiaoZhiStatus,
+  MCPPayload,
+  MCPTool,
+  TTSState,
+} from './composables/useXiaoZhi'
 
 // 共享类型重新导出
 export type {

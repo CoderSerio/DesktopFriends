@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from "vue";
 import {
   MdInput,
   MdTextarea,
@@ -8,7 +8,8 @@ import {
   MdCard,
   MdButton,
   MdSnackbar,
-} from '@desktopfriends/ui'
+  XiaoZhiDebugPanel,
+} from "@desktopfriends/ui";
 import {
   useSettings,
   useServerDiscovery,
@@ -17,13 +18,13 @@ import {
   DEFAULT_PET_PROMPT,
   PRESET_BACKGROUNDS,
   type DiscoveredServer,
-} from '@desktopfriends/core'
-import { useLocalServer } from '../composables/useLocalServer'
-import { useModelUpload } from '../composables/useModelUpload'
+} from "@desktopfriends/core";
+import { useLocalServer } from "../composables/useLocalServer";
+import { useModelUpload } from "../composables/useModelUpload";
 
 const emit = defineEmits<{
-  back: []
-}>()
+  back: [];
+}>();
 
 // 本地服务器管理
 const {
@@ -36,18 +37,18 @@ const {
   getStartCommand,
   getLocalIP,
   copyToClipboard,
-} = useLocalServer()
+} = useLocalServer();
 
 // 本地服务器状态
-const localServerPort = ref(3000)
-const localServerIP = ref('')
-const showServerGuide = ref(false)
-const isStartingServer = ref(false)
+const localServerPort = ref(3000);
+const localServerIP = ref("");
+const showServerGuide = ref(false);
+const isStartingServer = ref(false);
 
 // 获取本机 IP
-getLocalIP().then(ip => {
-  localServerIP.value = ip
-})
+getLocalIP().then((ip) => {
+  localServerIP.value = ip;
+});
 const {
   settings,
   resetSettings,
@@ -62,7 +63,7 @@ const {
   setBackgroundImage,
   setPresetBackground,
   clearCustomBackground,
-} = useSettings()
+} = useSettings();
 const {
   servers: discoveredServers,
   isScanning,
@@ -70,13 +71,18 @@ const {
   quickScan,
   testServer,
   stopScan,
-} = useServerDiscovery()
+} = useServerDiscovery();
 
 // P2P 连接状态（使用单例，获取当前连接状态）
-const p2p = useP2P()
+const p2p = useP2P();
 
 // 聊天历史记录
-const { chatHistory, stats: chatStats, exportHistory, clearHistory: clearChatHistory } = useChatHistory()
+const {
+  chatHistory,
+  stats: chatStats,
+  exportHistory,
+  clearHistory: clearChatHistory,
+} = useChatHistory();
 
 // 模型上传
 const {
@@ -86,116 +92,116 @@ const {
   uploadModel,
   getUploadedModels,
   deleteModel,
-} = useModelUpload()
+} = useModelUpload();
 
 // 已上传的模型列表
-const uploadedModels = ref<string[]>([])
-const modelFileInputRef = ref<HTMLInputElement | null>(null)
-const showModelDeleteConfirm = ref(false)
-const modelToDelete = ref<string | null>(null)
+const uploadedModels = ref<string[]>([]);
+const modelFileInputRef = ref<HTMLInputElement | null>(null);
+const showModelDeleteConfirm = ref(false);
+const modelToDelete = ref<string | null>(null);
 
 // 加载已上传的模型列表
 onMounted(async () => {
-  uploadedModels.value = await getUploadedModels()
-})
+  uploadedModels.value = await getUploadedModels();
+});
 
 // 触发模型文件选择
 const triggerModelFileSelect = () => {
-  modelFileInputRef.value?.click()
-}
+  modelFileInputRef.value?.click();
+};
 
 // 处理模型文件选择
 const handleModelFileSelect = async (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
 
   // 检查文件类型
-  if (!file.name.endsWith('.zip')) {
-    snackbarMessage.value = '请选择 zip 格式的模型文件'
-    snackbarType.value = 'error'
-    showSnackbar.value = true
-    input.value = ''
-    return
+  if (!file.name.endsWith(".zip")) {
+    snackbarMessage.value = "请选择 zip 格式的模型文件";
+    snackbarType.value = "error";
+    showSnackbar.value = true;
+    input.value = "";
+    return;
   }
 
   // 使用当前宠物名称作为模型名称
-  const modelPath = await uploadModel(file, currentPet.value.name)
+  const modelPath = await uploadModel(file, currentPet.value.name);
 
   if (modelPath) {
     // 更新宠物的模型路径
-    updatePet(currentPet.value.id, { modelPath })
-    snackbarMessage.value = '模型上传成功！'
-    snackbarType.value = 'success'
+    updatePet(currentPet.value.id, { modelPath });
+    snackbarMessage.value = "模型上传成功！";
+    snackbarType.value = "success";
     // 刷新已上传模型列表
-    uploadedModels.value = await getUploadedModels()
+    uploadedModels.value = await getUploadedModels();
   } else if (modelUploadError.value) {
-    snackbarMessage.value = modelUploadError.value
-    snackbarType.value = 'error'
+    snackbarMessage.value = modelUploadError.value;
+    snackbarType.value = "error";
   }
 
-  showSnackbar.value = true
-  input.value = ''
-}
+  showSnackbar.value = true;
+  input.value = "";
+};
 
 // 使用已上传的模型
 const useUploadedModel = async (modelName: string) => {
   // 构建模型路径
-  const { Filesystem, Directory } = await import('@capacitor/filesystem')
+  const { Filesystem, Directory } = await import("@capacitor/filesystem");
   try {
     // 查找模型目录下的 model.json 文件
     const files = await Filesystem.readdir({
       path: `models/${modelName}`,
       directory: Directory.Data,
-    })
+    });
 
-    const modelFile = files.files.find(f =>
-      f.name.endsWith('.model3.json') || f.name.endsWith('.model.json')
-    )
+    const modelFile = files.files.find(
+      (f) => f.name.endsWith(".model3.json") || f.name.endsWith(".model.json")
+    );
 
     if (modelFile) {
       const result = await Filesystem.getUri({
         path: `models/${modelName}/${modelFile.name}`,
         directory: Directory.Data,
-      })
-      updatePet(currentPet.value.id, { modelPath: result.uri })
-      snackbarMessage.value = `已切换到模型: ${modelName}`
-      snackbarType.value = 'success'
+      });
+      updatePet(currentPet.value.id, { modelPath: result.uri });
+      snackbarMessage.value = `已切换到模型: ${modelName}`;
+      snackbarType.value = "success";
     } else {
-      snackbarMessage.value = '未找到模型文件'
-      snackbarType.value = 'error'
+      snackbarMessage.value = "未找到模型文件";
+      snackbarType.value = "error";
     }
   } catch (e) {
-    console.error('Error loading model:', e)
-    snackbarMessage.value = '加载模型失败'
-    snackbarType.value = 'error'
+    console.error("Error loading model:", e);
+    snackbarMessage.value = "加载模型失败";
+    snackbarType.value = "error";
   }
-  showSnackbar.value = true
-}
+  showSnackbar.value = true;
+};
 
 // 确认删除模型
 const confirmDeleteModel = (modelName: string) => {
-  modelToDelete.value = modelName
-  showModelDeleteConfirm.value = true
-}
+  modelToDelete.value = modelName;
+  showModelDeleteConfirm.value = true;
+};
 
 // 执行删除模型
 const handleDeleteModel = async () => {
   if (modelToDelete.value) {
-    const success = await deleteModel(modelToDelete.value)
+    const success = await deleteModel(modelToDelete.value);
     if (success) {
-      snackbarMessage.value = `已删除模型: ${modelToDelete.value}`
-      snackbarType.value = 'info'
-      uploadedModels.value = await getUploadedModels()
+      snackbarMessage.value = `已删除模型: ${modelToDelete.value}`;
+      snackbarType.value = "info";
+      uploadedModels.value = await getUploadedModels();
     } else {
-      snackbarMessage.value = '删除失败'
-      snackbarType.value = 'error'
+      snackbarMessage.value = "删除失败";
+      snackbarType.value = "error";
     }
-    showSnackbar.value = true
+    showSnackbar.value = true;
   }
-  showModelDeleteConfirm.value = false
-  modelToDelete.value = null
-}
+  showModelDeleteConfirm.value = false;
+  modelToDelete.value = null;
+};
 
 // 调试：监听状态变化
 watch(
@@ -205,481 +211,491 @@ watch(
     pets: p2p.onlinePets.value.length,
   }),
   (state) => {
-    console.log('[SettingsView] P2P state changed:', state)
+    console.log("[SettingsView] P2P state changed:", state);
   },
   { immediate: true, deep: true }
-)
+);
 
 // 使用 computed 确保响应式追踪
-const isServerConnected = computed(() => p2p.isConnected.value && p2p.isRegistered.value)
-const onlinePetsCount = computed(() => p2p.onlinePets.value.length)
+const isServerConnected = computed(
+  () => p2p.isConnected.value && p2p.isRegistered.value
+);
+const onlinePetsCount = computed(() => p2p.onlinePets.value.length);
 
 // LLM 配置状态
-const isLLMConfigured = computed(() => !!settings.value.llmApiKey)
+const isLLMConfigured = computed(() => !!settings.value.llmApiKey);
 const llmStatusText = computed(() => {
-  if (!settings.value.llmApiKey) return '未配置'
-  const provider = llmProviders.find(p => p.value === settings.value.llmProvider)
-  return provider?.label || settings.value.llmProvider
-})
+  if (!settings.value.llmApiKey) return "未配置";
+  const provider = llmProviders.find(
+    (p) => p.value === settings.value.llmProvider
+  );
+  return provider?.label || settings.value.llmProvider;
+});
 
 // 服务器状态文本
 const serverStatusText = computed(() => {
-  if (!settings.value.serverUrl) return '未配置'
+  if (!settings.value.serverUrl) return "未配置";
   if (p2p.isConnected.value) {
-    return p2p.isRegistered.value ? '已连接' : '连接中...'
+    return p2p.isRegistered.value ? "已连接" : "连接中...";
   }
-  return '未连接'
-})
+  return "未连接";
+});
 
-const showSnackbar = ref(false)
-const snackbarMessage = ref('')
-const snackbarType = ref<'success' | 'error' | 'info'>('success')
+const showSnackbar = ref(false);
+const snackbarMessage = ref("");
+const snackbarType = ref<"success" | "error" | "info">("success");
 
 const llmProviders = [
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'claude', label: 'Claude (Anthropic)' },
-  { value: 'deepseek', label: 'DeepSeek' },
-  { value: 'custom', label: '自定义' },
-]
+  { value: "openai", label: "OpenAI" },
+  { value: "claude", label: "Claude (Anthropic)" },
+  { value: "deepseek", label: "DeepSeek" },
+  { value: "custom", label: "自定义" },
+];
 
 const showApiKeyHint = computed(() => {
   switch (settings.value.llmProvider) {
-    case 'openai':
-      return '以 sk- 开头的 API Key'
-    case 'claude':
-      return '以 sk-ant- 开头的 API Key'
-    case 'deepseek':
-      return 'DeepSeek API Key'
+    case "openai":
+      return "以 sk- 开头的 API Key";
+    case "claude":
+      return "以 sk-ant- 开头的 API Key";
+    case "deepseek":
+      return "DeepSeek API Key";
     default:
-      return '输入你的 API Key'
+      return "输入你的 API Key";
   }
-})
+});
 
 const showBaseUrlHint = computed(() => {
   switch (settings.value.llmProvider) {
-    case 'openai':
-      return '默认: https://api.openai.com/v1/chat/completions'
-    case 'claude':
-      return '默认: https://api.anthropic.com/v1/messages'
-    case 'deepseek':
-      return '默认: https://api.deepseek.com/v1/chat/completions'
+    case "openai":
+      return "默认: https://api.openai.com/v1/chat/completions";
+    case "claude":
+      return "默认: https://api.anthropic.com/v1/messages";
+    case "deepseek":
+      return "默认: https://api.deepseek.com/v1/chat/completions";
     default:
-      return '完整的 API 端点 URL'
+      return "完整的 API 端点 URL";
   }
-})
+});
 
 const testConnection = async () => {
   if (!settings.value.llmApiKey) {
-    snackbarMessage.value = '请先输入 API Key'
-    snackbarType.value = 'error'
-    showSnackbar.value = true
-    return
+    snackbarMessage.value = "请先输入 API Key";
+    snackbarType.value = "error";
+    showSnackbar.value = true;
+    return;
   }
 
   // 自定义 API 必须填写地址
-  if (settings.value.llmProvider === 'custom' && !settings.value.llmBaseUrl) {
-    snackbarMessage.value = '自定义 API 需要填写 API 地址'
-    snackbarType.value = 'error'
-    showSnackbar.value = true
-    return
+  if (settings.value.llmProvider === "custom" && !settings.value.llmBaseUrl) {
+    snackbarMessage.value = "自定义 API 需要填写 API 地址";
+    snackbarType.value = "error";
+    showSnackbar.value = true;
+    return;
   }
 
-  snackbarMessage.value = '测试连接中...'
-  snackbarType.value = 'info'
-  showSnackbar.value = true
+  snackbarMessage.value = "测试连接中...";
+  snackbarType.value = "info";
+  showSnackbar.value = true;
 
   // 简单的连接测试
   try {
-    const config = getLLMConfig()
-    let url = config.baseUrl
-    let headers: Record<string, string> = {}
+    const config = getLLMConfig();
+    let url = config.baseUrl;
+    let headers: Record<string, string> = {};
 
-    if (config.provider === 'openai' || config.provider === 'deepseek') {
-      url = url || (config.provider === 'openai'
-        ? 'https://api.openai.com/v1/models'
-        : 'https://api.deepseek.com/v1/models')
-      headers = { Authorization: `Bearer ${config.apiKey}` }
-    } else if (config.provider === 'claude') {
+    if (config.provider === "openai" || config.provider === "deepseek") {
+      url =
+        url ||
+        (config.provider === "openai"
+          ? "https://api.openai.com/v1/models"
+          : "https://api.deepseek.com/v1/models");
+      headers = { Authorization: `Bearer ${config.apiKey}` };
+    } else if (config.provider === "claude") {
       // Claude doesn't have a simple health check endpoint
-      snackbarMessage.value = 'Claude API Key 已保存，发送消息时验证'
-      snackbarType.value = 'success'
-      showSnackbar.value = true
-      return
-    } else if (config.provider === 'custom') {
+      snackbarMessage.value = "Claude API Key 已保存，发送消息时验证";
+      snackbarType.value = "success";
+      showSnackbar.value = true;
+      return;
+    } else if (config.provider === "custom") {
       // 自定义 API，尝试获取 models 列表或直接测试
-      url = config.baseUrl!.replace('/chat/completions', '/models')
-      headers = { Authorization: `Bearer ${config.apiKey}` }
+      url = config.baseUrl!.replace("/chat/completions", "/models");
+      headers = { Authorization: `Bearer ${config.apiKey}` };
     }
 
-    const response = await fetch(url!, { headers, method: 'GET' })
+    const response = await fetch(url!, { headers, method: "GET" });
 
     if (response.ok) {
-      snackbarMessage.value = '连接成功！'
-      snackbarType.value = 'success'
+      snackbarMessage.value = "连接成功！";
+      snackbarType.value = "success";
     } else {
-      snackbarMessage.value = `连接失败: ${response.status}`
-      snackbarType.value = 'error'
+      snackbarMessage.value = `连接失败: ${response.status}`;
+      snackbarType.value = "error";
     }
   } catch (e) {
-    snackbarMessage.value = '连接失败，请检查网络或代理设置'
-    snackbarType.value = 'error'
+    snackbarMessage.value = "连接失败，请检查网络或代理设置";
+    snackbarType.value = "error";
   }
-  showSnackbar.value = true
-}
+  showSnackbar.value = true;
+};
 
 const handleReset = () => {
-  resetSettings()
-  snackbarMessage.value = '设置已重置'
-  snackbarType.value = 'info'
-  showSnackbar.value = true
-}
+  resetSettings();
+  snackbarMessage.value = "设置已重置";
+  snackbarType.value = "info";
+  showSnackbar.value = true;
+};
 
 // 恢复默认人设
 const resetPrompt = () => {
-  updatePet(currentPet.value.id, { prompt: DEFAULT_PET_PROMPT })
-  snackbarMessage.value = '已恢复默认人设'
-  snackbarType.value = 'success'
-  showSnackbar.value = true
-}
+  updatePet(currentPet.value.id, { prompt: DEFAULT_PET_PROMPT });
+  snackbarMessage.value = "已恢复默认人设";
+  snackbarType.value = "success";
+  showSnackbar.value = true;
+};
 
 // ===== 宠物管理 =====
-const showDeleteConfirm = ref(false)
-const petToDelete = ref<string | null>(null)
+const showDeleteConfirm = ref(false);
+const petToDelete = ref<string | null>(null);
 
 // 添加新宠物
 const handleAddPet = () => {
-  const newPet = addPet()
-  switchPet(newPet.id)
-  snackbarMessage.value = `已创建新宠物: ${newPet.name}`
-  snackbarType.value = 'success'
-  showSnackbar.value = true
-}
+  const newPet = addPet();
+  switchPet(newPet.id);
+  snackbarMessage.value = `已创建新宠物: ${newPet.name}`;
+  snackbarType.value = "success";
+  showSnackbar.value = true;
+};
 
 // 切换宠物
 const handleSwitchPet = (petId: string) => {
-  if (petId === currentPet.value.id) return
-  switchPet(petId)
-  snackbarMessage.value = `已切换到: ${currentPet.value.name}`
-  snackbarType.value = 'success'
-  showSnackbar.value = true
-}
+  if (petId === currentPet.value.id) return;
+  switchPet(petId);
+  snackbarMessage.value = `已切换到: ${currentPet.value.name}`;
+  snackbarType.value = "success";
+  showSnackbar.value = true;
+};
 
 // 确认删除宠物
 const confirmDeletePet = (petId: string) => {
   if (pets.value.length <= 1) {
-    snackbarMessage.value = '至少保留一个宠物'
-    snackbarType.value = 'error'
-    showSnackbar.value = true
-    return
+    snackbarMessage.value = "至少保留一个宠物";
+    snackbarType.value = "error";
+    showSnackbar.value = true;
+    return;
   }
-  petToDelete.value = petId
-  showDeleteConfirm.value = true
-}
+  petToDelete.value = petId;
+  showDeleteConfirm.value = true;
+};
 
 // 执行删除
 const handleDeletePet = () => {
   if (petToDelete.value) {
-    const petName = pets.value.find(p => p.id === petToDelete.value)?.name
-    removePet(petToDelete.value)
-    snackbarMessage.value = `已删除: ${petName}`
-    snackbarType.value = 'info'
-    showSnackbar.value = true
+    const petName = pets.value.find((p) => p.id === petToDelete.value)?.name;
+    removePet(petToDelete.value);
+    snackbarMessage.value = `已删除: ${petName}`;
+    snackbarType.value = "info";
+    showSnackbar.value = true;
   }
-  showDeleteConfirm.value = false
-  petToDelete.value = null
-}
+  showDeleteConfirm.value = false;
+  petToDelete.value = null;
+};
 
 // 复制宠物
 const handleDuplicatePet = (petId: string) => {
-  const newPet = duplicatePet(petId)
+  const newPet = duplicatePet(petId);
   if (newPet) {
-    switchPet(newPet.id)
-    snackbarMessage.value = `已复制: ${newPet.name}`
-    snackbarType.value = 'success'
-    showSnackbar.value = true
+    switchPet(newPet.id);
+    snackbarMessage.value = `已复制: ${newPet.name}`;
+    snackbarType.value = "success";
+    showSnackbar.value = true;
   }
-}
+};
 
 // 扫描局域网服务器
 const handleScanServers = async () => {
-  snackbarMessage.value = '正在扫描局域网...'
-  snackbarType.value = 'info'
-  showSnackbar.value = true
+  snackbarMessage.value = "正在扫描局域网...";
+  snackbarType.value = "info";
+  showSnackbar.value = true;
 
-  await quickScan()
+  await quickScan();
 
   if (discoveredServers.value.length > 0) {
-    snackbarMessage.value = `找到 ${discoveredServers.value.length} 个服务器`
-    snackbarType.value = 'success'
+    snackbarMessage.value = `找到 ${discoveredServers.value.length} 个服务器`;
+    snackbarType.value = "success";
   } else {
-    snackbarMessage.value = '未找到服务器'
-    snackbarType.value = 'error'
+    snackbarMessage.value = "未找到服务器";
+    snackbarType.value = "error";
   }
-  showSnackbar.value = true
-}
+  showSnackbar.value = true;
+};
 
 // 选择发现的服务器
 const selectServer = (server: DiscoveredServer) => {
-  settings.value.serverUrl = server.url
-  snackbarMessage.value = `已选择: ${server.ip}`
-  snackbarType.value = 'success'
-  showSnackbar.value = true
-}
+  settings.value.serverUrl = server.url;
+  snackbarMessage.value = `已选择: ${server.ip}`;
+  snackbarType.value = "success";
+  showSnackbar.value = true;
+};
 
 // 测试当前服务器连接
 const testServerConnection = async () => {
   if (!settings.value.serverUrl) {
-    snackbarMessage.value = '请先输入或选择服务器地址'
-    snackbarType.value = 'error'
-    showSnackbar.value = true
-    return
+    snackbarMessage.value = "请先输入或选择服务器地址";
+    snackbarType.value = "error";
+    showSnackbar.value = true;
+    return;
   }
 
-  snackbarMessage.value = '测试连接中...'
-  snackbarType.value = 'info'
-  showSnackbar.value = true
+  snackbarMessage.value = "测试连接中...";
+  snackbarType.value = "info";
+  showSnackbar.value = true;
 
-  const result = await testServer(settings.value.serverUrl)
+  const result = await testServer(settings.value.serverUrl);
   if (result) {
-    snackbarMessage.value = `连接成功！当前有 ${result.pets} 只宠物在线`
-    snackbarType.value = 'success'
+    snackbarMessage.value = `连接成功！当前有 ${result.pets} 只宠物在线`;
+    snackbarType.value = "success";
   } else {
-    snackbarMessage.value = '连接失败，请检查服务器地址'
-    snackbarType.value = 'error'
+    snackbarMessage.value = "连接失败，请检查服务器地址";
+    snackbarType.value = "error";
   }
-  showSnackbar.value = true
-}
+  showSnackbar.value = true;
+};
 
 // ===== 创建房间相关 =====
 
 // 复制启动命令
 const handleCopyCommand = async () => {
-  const command = getStartCommand()
-  const success = await copyToClipboard(command)
+  const command = getStartCommand();
+  const success = await copyToClipboard(command);
   if (success) {
-    snackbarMessage.value = '启动命令已复制到剪贴板'
-    snackbarType.value = 'success'
+    snackbarMessage.value = "启动命令已复制到剪贴板";
+    snackbarType.value = "success";
   } else {
-    snackbarMessage.value = '复制失败，请手动复制'
-    snackbarType.value = 'error'
+    snackbarMessage.value = "复制失败，请手动复制";
+    snackbarType.value = "error";
   }
-  showSnackbar.value = true
-}
+  showSnackbar.value = true;
+};
 
 // 复制服务器地址
 const handleCopyServerUrl = async () => {
-  const url = `http://${localServerIP.value}:${localServerPort.value}`
-  const success = await copyToClipboard(url)
+  const url = `http://${localServerIP.value}:${localServerPort.value}`;
+  const success = await copyToClipboard(url);
   if (success) {
-    snackbarMessage.value = '服务器地址已复制'
-    snackbarType.value = 'success'
+    snackbarMessage.value = "服务器地址已复制";
+    snackbarType.value = "success";
   } else {
-    snackbarMessage.value = '复制失败'
-    snackbarType.value = 'error'
+    snackbarMessage.value = "复制失败";
+    snackbarType.value = "error";
   }
-  showSnackbar.value = true
-}
+  showSnackbar.value = true;
+};
 
 // 使用本机作为服务器
 const useLocalAsServer = () => {
-  settings.value.serverUrl = `http://${localServerIP.value}:${localServerPort.value}`
-  snackbarMessage.value = '已设置为本机服务器地址'
-  snackbarType.value = 'success'
-  showSnackbar.value = true
-}
+  settings.value.serverUrl = `http://${localServerIP.value}:${localServerPort.value}`;
+  snackbarMessage.value = "已设置为本机服务器地址";
+  snackbarType.value = "success";
+  showSnackbar.value = true;
+};
 
 // 一键启动服务器
 const handleStartServer = async () => {
   if (!environment.canRunServer) {
     // 非原生环境，显示启动指南
-    showServerGuide.value = true
-    snackbarMessage.value = '当前环境不支持直接启动，请查看启动指南'
-    snackbarType.value = 'info'
-    showSnackbar.value = true
-    return
+    showServerGuide.value = true;
+    snackbarMessage.value = "当前环境不支持直接启动，请查看启动指南";
+    snackbarType.value = "info";
+    showSnackbar.value = true;
+    return;
   }
 
-  isStartingServer.value = true
-  snackbarMessage.value = '正在启动服务器...'
-  snackbarType.value = 'info'
-  showSnackbar.value = true
+  isStartingServer.value = true;
+  snackbarMessage.value = "正在启动服务器...";
+  snackbarType.value = "info";
+  showSnackbar.value = true;
 
-  const success = await startServer(localServerPort.value)
+  const success = await startServer(localServerPort.value);
 
-  isStartingServer.value = false
+  isStartingServer.value = false;
 
   if (success) {
     // 自动设置服务器地址
-    settings.value.serverUrl = `http://${localServerIP.value}:${localServerPort.value}`
-    snackbarMessage.value = '服务器已启动！其他设备可以连接了'
-    snackbarType.value = 'success'
+    settings.value.serverUrl = `http://${localServerIP.value}:${localServerPort.value}`;
+    snackbarMessage.value = "服务器已启动！其他设备可以连接了";
+    snackbarType.value = "success";
   } else {
-    snackbarMessage.value = localServerError.value || '启动失败'
-    snackbarType.value = 'error'
+    snackbarMessage.value = localServerError.value || "启动失败";
+    snackbarType.value = "error";
   }
-  showSnackbar.value = true
-}
+  showSnackbar.value = true;
+};
 
 // 停止服务器
 const handleStopServer = async () => {
-  const success = await stopServer()
+  const success = await stopServer();
 
   if (success) {
-    snackbarMessage.value = '服务器已停止'
-    snackbarType.value = 'info'
+    snackbarMessage.value = "服务器已停止";
+    snackbarType.value = "info";
   } else {
-    snackbarMessage.value = '停止失败'
-    snackbarType.value = 'error'
+    snackbarMessage.value = "停止失败";
+    snackbarType.value = "error";
   }
-  showSnackbar.value = true
-}
+  showSnackbar.value = true;
+};
 
 // ===== 聊天记录相关 =====
 
 // 导出聊天记录为 JSON
 const handleExportJSON = () => {
   if (chatHistory.value.length === 0) {
-    snackbarMessage.value = '暂无聊天记录可导出'
-    snackbarType.value = 'error'
-    showSnackbar.value = true
-    return
+    snackbarMessage.value = "暂无聊天记录可导出";
+    snackbarType.value = "error";
+    showSnackbar.value = true;
+    return;
   }
-  exportHistory('json')
-  snackbarMessage.value = `已导出 ${chatStats.value.total} 条聊天记录`
-  snackbarType.value = 'success'
-  showSnackbar.value = true
-}
+  exportHistory("json");
+  snackbarMessage.value = `已导出 ${chatStats.value.total} 条聊天记录`;
+  snackbarType.value = "success";
+  showSnackbar.value = true;
+};
 
 // 导出聊天记录为文本
 const handleExportText = () => {
   if (chatHistory.value.length === 0) {
-    snackbarMessage.value = '暂无聊天记录可导出'
-    snackbarType.value = 'error'
-    showSnackbar.value = true
-    return
+    snackbarMessage.value = "暂无聊天记录可导出";
+    snackbarType.value = "error";
+    showSnackbar.value = true;
+    return;
   }
-  exportHistory('text')
-  snackbarMessage.value = `已导出 ${chatStats.value.total} 条聊天记录`
-  snackbarType.value = 'success'
-  showSnackbar.value = true
-}
+  exportHistory("text");
+  snackbarMessage.value = `已导出 ${chatStats.value.total} 条聊天记录`;
+  snackbarType.value = "success";
+  showSnackbar.value = true;
+};
 
 // 清空聊天记录
-const showClearChatConfirm = ref(false)
+const showClearChatConfirm = ref(false);
 
 const handleClearChatHistory = () => {
-  clearChatHistory()
-  showClearChatConfirm.value = false
-  snackbarMessage.value = '聊天记录已清空'
-  snackbarType.value = 'info'
-  showSnackbar.value = true
-}
+  clearChatHistory();
+  showClearChatConfirm.value = false;
+  snackbarMessage.value = "聊天记录已清空";
+  snackbarType.value = "info";
+  showSnackbar.value = true;
+};
 
 // ===== 背景设置相关 =====
-const fileInputRef = ref<HTMLInputElement | null>(null)
-const isUploadingBackground = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const isUploadingBackground = ref(false);
 
 // 触发文件选择
 const triggerFileSelect = () => {
-  fileInputRef.value?.click()
-}
+  fileInputRef.value?.click();
+};
 
 // 处理文件选择
 const handleFileSelect = async (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
 
   // 检查文件类型
-  if (!file.type.startsWith('image/')) {
-    snackbarMessage.value = '请选择图片文件'
-    snackbarType.value = 'error'
-    showSnackbar.value = true
-    return
+  if (!file.type.startsWith("image/")) {
+    snackbarMessage.value = "请选择图片文件";
+    snackbarType.value = "error";
+    showSnackbar.value = true;
+    return;
   }
 
   // 检查文件大小（限制 5MB）
-  const maxSize = 5 * 1024 * 1024
+  const maxSize = 5 * 1024 * 1024;
   if (file.size > maxSize) {
-    snackbarMessage.value = '图片大小不能超过 5MB'
-    snackbarType.value = 'error'
-    showSnackbar.value = true
-    return
+    snackbarMessage.value = "图片大小不能超过 5MB";
+    snackbarType.value = "error";
+    showSnackbar.value = true;
+    return;
   }
 
-  isUploadingBackground.value = true
+  isUploadingBackground.value = true;
 
   try {
     // 压缩并转换为 base64
-    const compressedImage = await compressImage(file, 1920, 0.8)
-    setBackgroundImage(compressedImage)
-    snackbarMessage.value = '背景已更新'
-    snackbarType.value = 'success'
+    const compressedImage = await compressImage(file, 1920, 0.8);
+    setBackgroundImage(compressedImage);
+    snackbarMessage.value = "背景已更新";
+    snackbarType.value = "success";
   } catch (e) {
-    console.error('Failed to process image:', e)
-    snackbarMessage.value = '图片处理失败'
-    snackbarType.value = 'error'
+    console.error("Failed to process image:", e);
+    snackbarMessage.value = "图片处理失败";
+    snackbarType.value = "error";
   } finally {
-    isUploadingBackground.value = false
+    isUploadingBackground.value = false;
     // 清空 input 以便再次选择同一文件
-    input.value = ''
+    input.value = "";
   }
-  showSnackbar.value = true
-}
+  showSnackbar.value = true;
+};
 
 // 压缩图片
-const compressImage = (file: File, maxWidth: number, quality: number): Promise<string> => {
+const compressImage = (
+  file: File,
+  maxWidth: number,
+  quality: number
+): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = (e) => {
-      const img = new Image()
+      const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement('canvas')
-        let width = img.width
-        let height = img.height
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
 
         // 如果图片宽度大于最大宽度，按比例缩放
         if (width > maxWidth) {
-          height = (height * maxWidth) / width
-          width = maxWidth
+          height = (height * maxWidth) / width;
+          width = maxWidth;
         }
 
-        canvas.width = width
-        canvas.height = height
+        canvas.width = width;
+        canvas.height = height;
 
-        const ctx = canvas.getContext('2d')
+        const ctx = canvas.getContext("2d");
         if (!ctx) {
-          reject(new Error('Failed to get canvas context'))
-          return
+          reject(new Error("Failed to get canvas context"));
+          return;
         }
 
-        ctx.drawImage(img, 0, 0, width, height)
-        const dataUrl = canvas.toDataURL('image/jpeg', quality)
-        resolve(dataUrl)
-      }
-      img.onerror = () => reject(new Error('Failed to load image'))
-      img.src = e.target?.result as string
-    }
-    reader.onerror = () => reject(new Error('Failed to read file'))
-    reader.readAsDataURL(file)
-  })
-}
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+};
 
 // 选择预设背景
 const selectPresetBackground = (presetId: string) => {
-  setPresetBackground(presetId)
-  snackbarMessage.value = '背景已更新'
-  snackbarType.value = 'success'
-  showSnackbar.value = true
-}
+  setPresetBackground(presetId);
+  snackbarMessage.value = "背景已更新";
+  snackbarType.value = "success";
+  showSnackbar.value = true;
+};
 
 // 清除背景
 const handleClearBackground = () => {
-  clearCustomBackground()
-  snackbarMessage.value = '已恢复默认背景'
-  snackbarType.value = 'info'
-  showSnackbar.value = true
-}
+  clearCustomBackground();
+  snackbarMessage.value = "已恢复默认背景";
+  snackbarType.value = "info";
+  showSnackbar.value = true;
+};
 </script>
 
 <template>
@@ -688,7 +704,9 @@ const handleClearBackground = () => {
     <header class="header">
       <button class="back-btn" @click="emit('back')">
         <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+          <path
+            d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"
+          />
         </svg>
       </button>
       <h1>设置</h1>
@@ -699,7 +717,9 @@ const handleClearBackground = () => {
       <div class="status-item">
         <div class="status-icon" :class="{ active: isServerConnected }">
           <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+            />
           </svg>
         </div>
         <div class="status-info">
@@ -715,7 +735,9 @@ const handleClearBackground = () => {
       <div class="status-item">
         <div class="status-icon" :class="{ active: isLLMConfigured }">
           <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M21 10.12h-6.78l2.74-2.82c-2.73-2.7-7.15-2.8-9.88-.1-2.73 2.71-2.73 7.08 0 9.79s7.15 2.71 9.88 0C18.32 15.65 19 14.08 19 12.1h2c0 1.98-.88 4.55-2.64 6.29-3.51 3.48-9.21 3.48-12.72 0-3.5-3.47-3.53-9.11-.02-12.58s9.14-3.47 12.65 0L21 3v7.12zM12.5 8v4.25l3.5 2.08-.72 1.21L11 13V8h1.5z"/>
+            <path
+              d="M21 10.12h-6.78l2.74-2.82c-2.73-2.7-7.15-2.8-9.88-.1-2.73 2.71-2.73 7.08 0 9.79s7.15 2.71 9.88 0C18.32 15.65 19 14.08 19 12.1h2c0 1.98-.88 4.55-2.64 6.29-3.51 3.48-9.21 3.48-12.72 0-3.5-3.47-3.53-9.11-.02-12.58s9.14-3.47 12.65 0L21 3v7.12zM12.5 8v4.25l3.5 2.08-.72 1.21L11 13V8h1.5z"
+            />
           </svg>
         </div>
         <div class="status-info">
@@ -731,14 +753,14 @@ const handleClearBackground = () => {
       <div class="status-item">
         <div class="status-icon pets">
           <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            <path
+              d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+            />
           </svg>
         </div>
         <div class="status-info">
           <span class="status-label">在线宠物</span>
-          <span class="status-value pets">
-            {{ onlinePetsCount }} 只
-          </span>
+          <span class="status-value pets"> {{ onlinePetsCount }} 只 </span>
         </div>
       </div>
     </div>
@@ -762,14 +784,26 @@ const handleClearBackground = () => {
               </div>
               <div class="pet-card-name">{{ pet.name }}</div>
               <div class="pet-card-actions" v-if="pet.id === currentPet.id">
-                <button class="pet-action-btn" @click.stop="handleDuplicatePet(pet.id)" title="复制">
+                <button
+                  class="pet-action-btn"
+                  @click.stop="handleDuplicatePet(pet.id)"
+                  title="复制"
+                >
                   <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                    <path
+                      d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+                    />
                   </svg>
                 </button>
-                <button class="pet-action-btn delete" @click.stop="confirmDeletePet(pet.id)" title="删除">
+                <button
+                  class="pet-action-btn delete"
+                  @click.stop="confirmDeletePet(pet.id)"
+                  title="删除"
+                >
                   <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                    <path
+                      d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                    />
                   </svg>
                 </button>
               </div>
@@ -778,7 +812,7 @@ const handleClearBackground = () => {
             <div class="pet-card add-pet" @click="handleAddPet">
               <div class="add-icon">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                 </svg>
               </div>
               <div class="pet-card-name">添加</div>
@@ -819,15 +853,21 @@ const handleClearBackground = () => {
 
             <!-- 上传按钮和进度 -->
             <div class="model-upload-actions">
-              <MdButton @click="triggerModelFileSelect" :disabled="isUploadingModel">
-                {{ isUploadingModel ? '上传中...' : '上传模型 (zip)' }}
+              <MdButton
+                @click="triggerModelFileSelect"
+                :disabled="isUploadingModel"
+              >
+                {{ isUploadingModel ? "上传中..." : "上传模型 (zip)" }}
               </MdButton>
             </div>
 
             <!-- 上传进度条 -->
             <div v-if="isUploadingModel" class="upload-progress">
               <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: `${uploadProgress.progress}%` }"></div>
+                <div
+                  class="progress-fill"
+                  :style="{ width: `${uploadProgress.progress}%` }"
+                ></div>
               </div>
               <span class="progress-text">{{ uploadProgress.message }}</span>
             </div>
@@ -845,9 +885,14 @@ const handleClearBackground = () => {
                     <span class="model-name">{{ model }}</span>
                     <span class="model-hint">点击使用</span>
                   </div>
-                  <button class="model-delete-btn" @click="confirmDeleteModel(model)">
+                  <button
+                    class="model-delete-btn"
+                    @click="confirmDeleteModel(model)"
+                  >
                     <svg viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                      <path
+                        d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -864,9 +909,7 @@ const handleClearBackground = () => {
             placeholder="例如: 你是一个可爱的桌面宠物，名叫{petName}。你性格活泼、善良..."
           />
           <div class="prompt-actions">
-            <MdButton @click="resetPrompt">
-              恢复默认人设
-            </MdButton>
+            <MdButton @click="resetPrompt"> 恢复默认人设 </MdButton>
           </div>
         </div>
       </MdCard>
@@ -874,15 +917,23 @@ const handleClearBackground = () => {
       <!-- 删除模型确认对话框 -->
       <Teleport to="body">
         <Transition name="modal">
-          <div v-if="showModelDeleteConfirm" class="modal-overlay" @click="showModelDeleteConfirm = false">
+          <div
+            v-if="showModelDeleteConfirm"
+            class="modal-overlay"
+            @click="showModelDeleteConfirm = false"
+          >
             <div class="modal-content" @click.stop>
               <div class="modal-title">确认删除</div>
               <div class="modal-body">
                 确定要删除模型 "{{ modelToDelete }}" 吗？此操作无法撤销。
               </div>
               <div class="modal-actions">
-                <MdButton @click="showModelDeleteConfirm = false">取消</MdButton>
-                <MdButton @click="handleDeleteModel" class="delete-btn">删除</MdButton>
+                <MdButton @click="showModelDeleteConfirm = false"
+                  >取消</MdButton
+                >
+                <MdButton @click="handleDeleteModel" class="delete-btn"
+                  >删除</MdButton
+                >
               </div>
             </div>
           </div>
@@ -892,7 +943,11 @@ const handleClearBackground = () => {
       <!-- 删除确认对话框 -->
       <Teleport to="body">
         <Transition name="modal">
-          <div v-if="showDeleteConfirm" class="modal-overlay" @click="showDeleteConfirm = false">
+          <div
+            v-if="showDeleteConfirm"
+            class="modal-overlay"
+            @click="showDeleteConfirm = false"
+          >
             <div class="modal-content" @click.stop>
               <div class="modal-title">确认删除</div>
               <div class="modal-body">
@@ -900,7 +955,9 @@ const handleClearBackground = () => {
               </div>
               <div class="modal-actions">
                 <MdButton @click="showDeleteConfirm = false">取消</MdButton>
-                <MdButton @click="handleDeletePet" class="delete-btn">删除</MdButton>
+                <MdButton @click="handleDeletePet" class="delete-btn"
+                  >删除</MdButton
+                >
               </div>
             </div>
           </div>
@@ -949,17 +1006,18 @@ const handleClearBackground = () => {
             @click="isScanning ? stopScan() : handleScanServers()"
             :disabled="false"
           >
-            {{ isScanning ? '停止扫描' : '扫描局域网' }}
+            {{ isScanning ? "停止扫描" : "扫描局域网" }}
           </MdButton>
-          <MdButton @click="testServerConnection">
-            测试连接
-          </MdButton>
+          <MdButton @click="testServerConnection"> 测试连接 </MdButton>
         </div>
 
         <!-- 扫描进度条 -->
         <div v-if="isScanning" class="progress-container">
           <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: `${scanProgress}%` }"></div>
+            <div
+              class="progress-fill"
+              :style="{ width: `${scanProgress}%` }"
+            ></div>
           </div>
           <span class="progress-text">{{ scanProgress }}%</span>
         </div>
@@ -978,25 +1036,31 @@ const handleClearBackground = () => {
               <span class="server-ip">{{ server.ip }}:{{ server.port }}</span>
               <span class="server-pets">{{ server.pets }} 只宠物在线</span>
             </div>
-            <svg v-if="settings.serverUrl === server.url" class="check-icon" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            <svg
+              v-if="settings.serverUrl === server.url"
+              class="check-icon"
+              viewBox="0 0 24 24"
+            >
+              <path
+                fill="currentColor"
+                d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+              />
             </svg>
           </div>
         </div>
 
-        <MdSwitch
-          v-model="settings.autoConnect"
-          label="自动连接服务器"
-        />
+        <MdSwitch v-model="settings.autoConnect" label="自动连接服务器" />
       </MdCard>
 
       <!-- 创建房间 -->
       <MdCard title="创建房间" class="card-animate" style="--delay: 3">
         <div class="create-room-section">
           <p class="create-room-desc">
-            {{ environment.canRunServer
-              ? '一键启动服务器，让其他设备连接到你的房间。'
-              : '在你的电脑上运行服务器，让其他设备连接到你的房间。' }}
+            {{
+              environment.canRunServer
+                ? "一键启动服务器，让其他设备连接到你的房间。"
+                : "在你的电脑上运行服务器，让其他设备连接到你的房间。"
+            }}
           </p>
 
           <!-- 服务器运行状态 -->
@@ -1014,7 +1078,7 @@ const handleClearBackground = () => {
           <div class="local-info">
             <div class="info-row">
               <span class="info-label">本机 IP</span>
-              <span class="info-value">{{ localServerIP || '获取中...' }}</span>
+              <span class="info-value">{{ localServerIP || "获取中..." }}</span>
             </div>
             <div class="info-row">
               <span class="info-label">端口</span>
@@ -1043,37 +1107,41 @@ const handleClearBackground = () => {
               :disabled="isStartingServer"
               class="start-server-btn"
             >
-              {{ isStartingServer ? '启动中...' : (environment.canRunServer ? '一键启动服务器' : '查看启动指南') }}
+              {{
+                isStartingServer
+                  ? "启动中..."
+                  : environment.canRunServer
+                  ? "一键启动服务器"
+                  : "查看启动指南"
+              }}
             </MdButton>
-            <MdButton
-              v-else
-              @click="handleStopServer"
-              class="stop-server-btn"
-            >
+            <MdButton v-else @click="handleStopServer" class="stop-server-btn">
               停止服务器
             </MdButton>
           </div>
 
           <!-- 操作按钮 -->
           <div class="create-room-actions">
-            <MdButton @click="handleCopyServerUrl">
-              复制地址
-            </MdButton>
-            <MdButton @click="useLocalAsServer">
-              使用此地址
-            </MdButton>
+            <MdButton @click="handleCopyServerUrl"> 复制地址 </MdButton>
+            <MdButton @click="useLocalAsServer"> 使用此地址 </MdButton>
           </div>
 
           <!-- 展开/折叠指南（非原生环境显示） -->
-          <button v-if="!environment.canRunServer" class="guide-toggle" @click="showServerGuide = !showServerGuide">
-            <span>{{ showServerGuide ? '收起' : '查看' }}启动指南</span>
+          <button
+            v-if="!environment.canRunServer"
+            class="guide-toggle"
+            @click="showServerGuide = !showServerGuide"
+          >
+            <span>{{ showServerGuide ? "收起" : "查看" }}启动指南</span>
             <svg
               class="toggle-icon"
               :class="{ expanded: showServerGuide }"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
-              <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+              <path
+                d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"
+              />
             </svg>
           </button>
 
@@ -1097,7 +1165,9 @@ const handleClearBackground = () => {
                     <code>{{ getStartCommand() }}</code>
                     <button class="copy-btn" @click="handleCopyCommand">
                       <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                        <path
+                          d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -1114,7 +1184,9 @@ const handleClearBackground = () => {
 
               <div class="guide-note">
                 <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                  <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"
+                  />
                 </svg>
                 <span>确保电脑和手机在同一局域网内</span>
               </div>
@@ -1125,10 +1197,7 @@ const handleClearBackground = () => {
 
       <!-- 显示设置 -->
       <MdCard title="显示" class="card-animate" style="--delay: 4">
-        <MdSwitch
-          v-model="settings.showBubble"
-          label="显示对话气泡"
-        />
+        <MdSwitch v-model="settings.showBubble" label="显示对话气泡" />
       </MdCard>
 
       <!-- 背景设置 -->
@@ -1147,16 +1216,31 @@ const handleClearBackground = () => {
           <div class="preview-label">当前背景</div>
           <div
             class="background-preview"
-            :style="settings.backgroundType === 'image' && settings.backgroundImage
-              ? { backgroundImage: `url(${settings.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-              : settings.backgroundType === 'preset' && settings.backgroundPreset
-                ? { background: PRESET_BACKGROUNDS.find(p => p.id === settings.backgroundPreset)?.value }
-                : { background: settings.backgroundGradient }"
+            :style="
+              settings.backgroundType === 'image' && settings.backgroundImage
+                ? {
+                    backgroundImage: `url(${settings.backgroundImage})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }
+                : settings.backgroundType === 'preset' &&
+                  settings.backgroundPreset
+                ? {
+                    background: PRESET_BACKGROUNDS.find(
+                      (p) => p.id === settings.backgroundPreset
+                    )?.value,
+                  }
+                : { background: settings.backgroundGradient }
+            "
           >
             <div class="preview-overlay">
               <span v-if="settings.backgroundType === 'image'">自定义图片</span>
               <span v-else-if="settings.backgroundType === 'preset'">
-                {{ PRESET_BACKGROUNDS.find(p => p.id === settings.backgroundPreset)?.name }}
+                {{
+                  PRESET_BACKGROUNDS.find(
+                    (p) => p.id === settings.backgroundPreset
+                  )?.name
+                }}
               </span>
               <span v-else>默认渐变</span>
             </div>
@@ -1165,10 +1249,16 @@ const handleClearBackground = () => {
 
         <!-- 上传按钮 -->
         <div class="upload-section">
-          <MdButton @click="triggerFileSelect" :disabled="isUploadingBackground">
-            {{ isUploadingBackground ? '处理中...' : '上传图片' }}
+          <MdButton
+            @click="triggerFileSelect"
+            :disabled="isUploadingBackground"
+          >
+            {{ isUploadingBackground ? "处理中..." : "上传图片" }}
           </MdButton>
-          <MdButton v-if="settings.backgroundType !== 'gradient'" @click="handleClearBackground">
+          <MdButton
+            v-if="settings.backgroundType !== 'gradient'"
+            @click="handleClearBackground"
+          >
             恢复默认
           </MdButton>
         </div>
@@ -1181,13 +1271,27 @@ const handleClearBackground = () => {
               v-for="preset in PRESET_BACKGROUNDS"
               :key="preset.id"
               class="preset-item"
-              :class="{ active: settings.backgroundType === 'preset' && settings.backgroundPreset === preset.id }"
+              :class="{
+                active:
+                  settings.backgroundType === 'preset' &&
+                  settings.backgroundPreset === preset.id,
+              }"
               :style="{ background: preset.value }"
               @click="selectPresetBackground(preset.id)"
             >
               <span class="preset-name">{{ preset.name }}</span>
-              <svg v-if="settings.backgroundType === 'preset' && settings.backgroundPreset === preset.id" class="check-icon" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+              <svg
+                v-if="
+                  settings.backgroundType === 'preset' &&
+                  settings.backgroundPreset === preset.id
+                "
+                class="check-icon"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  fill="currentColor"
+                  d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                />
               </svg>
             </div>
           </div>
@@ -1216,12 +1320,8 @@ const handleClearBackground = () => {
         </div>
 
         <div class="export-actions">
-          <MdButton @click="handleExportJSON">
-            导出 JSON
-          </MdButton>
-          <MdButton @click="handleExportText">
-            导出文本
-          </MdButton>
+          <MdButton @click="handleExportJSON"> 导出 JSON </MdButton>
+          <MdButton @click="handleExportText"> 导出文本 </MdButton>
         </div>
 
         <button class="clear-chat-btn" @click="showClearChatConfirm = true">
@@ -1232,7 +1332,11 @@ const handleClearBackground = () => {
       <!-- 清空聊天记录确认对话框 -->
       <Teleport to="body">
         <Transition name="modal">
-          <div v-if="showClearChatConfirm" class="modal-overlay" @click="showClearChatConfirm = false">
+          <div
+            v-if="showClearChatConfirm"
+            class="modal-overlay"
+            @click="showClearChatConfirm = false"
+          >
             <div class="modal-content" @click.stop>
               <div class="modal-title">确认清空</div>
               <div class="modal-body">
@@ -1240,18 +1344,62 @@ const handleClearBackground = () => {
               </div>
               <div class="modal-actions">
                 <MdButton @click="showClearChatConfirm = false">取消</MdButton>
-                <MdButton @click="handleClearChatHistory" class="delete-btn">清空</MdButton>
+                <MdButton @click="handleClearChatHistory" class="delete-btn"
+                  >清空</MdButton
+                >
               </div>
             </div>
           </div>
         </Transition>
       </Teleport>
 
+      <!-- 小智调试页面 -->
+      <MdCard title="小智后端 (XiaoZhi)" class="card-animate" style="--delay: 6.5">
+        <MdSwitch v-model="settings.xiaozhiEnabled" label="启用小智后端" />
+
+        <template v-if="settings.xiaozhiEnabled">
+          <MdInput
+            v-model="settings.xiaozhiOtaUrl"
+            label="OTA 服务器地址"
+            hint="小智后端的 OTA 地址"
+          />
+          <MdInput
+            v-model="settings.xiaozhiDeviceMac"
+            label="设备 MAC 地址 (可选)"
+            hint="留空将自动生成随机 MAC"
+          />
+          <MdInput
+            v-model="settings.xiaozhiDeviceName"
+            label="设备名称 (可选)"
+            hint="留空使用宠物名称"
+          />
+          <MdSwitch
+            v-model="settings.xiaozhiAutoPlayAudio"
+            label="自动播放语音"
+          />
+
+          <div class="xiaozhi-hint">
+            <p>启用后将使用小智后端进行对话，支持语音合成。</p>
+            <p>首次连接可能需要在小智后台输入验证码绑定设备。</p>
+          </div>
+        </template>
+      </MdCard>
+
+      <!-- 小智调试面板 (仅在启用时显示) -->
+      <XiaoZhiDebugPanel
+        v-if="settings.xiaozhiEnabled"
+        :initialConfig="{
+          otaUrl: settings.xiaozhiOtaUrl,
+          deviceMac: settings.xiaozhiDeviceMac,
+          deviceName: settings.xiaozhiDeviceName || currentPet.name,
+          autoPlayAudio: settings.xiaozhiAutoPlayAudio,
+        }"
+        showAdvanced
+      />
+
       <!-- 操作按钮 -->
       <div class="actions card-animate" style="--delay: 7">
-        <MdButton @click="handleReset">
-          重置所有设置
-        </MdButton>
+        <MdButton @click="handleReset"> 重置所有设置 </MdButton>
       </div>
     </main>
 
@@ -1548,7 +1696,11 @@ const handleClearBackground = () => {
 
 /* 服务器运行状态 */
 .server-running-status {
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(76, 175, 80, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(76, 175, 80, 0.15) 0%,
+    rgba(76, 175, 80, 0.05) 100%
+  );
   border: 1px solid rgba(76, 175, 80, 0.3);
   border-radius: 12px;
   padding: 12px 16px;
@@ -1572,7 +1724,8 @@ const handleClearBackground = () => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -1636,7 +1789,7 @@ const handleClearBackground = () => {
 .info-value {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.9);
-  font-family: 'SF Mono', Monaco, monospace;
+  font-family: "SF Mono", Monaco, monospace;
 }
 
 .info-value.highlight {
@@ -1764,7 +1917,7 @@ const handleClearBackground = () => {
   flex: 1;
   font-size: 12px;
   color: #4ade80;
-  font-family: 'SF Mono', Monaco, monospace;
+  font-family: "SF Mono", Monaco, monospace;
   word-break: break-all;
 }
 
@@ -2332,5 +2485,25 @@ const handleClearBackground = () => {
   width: 16px;
   height: 16px;
   color: #ef5350;
+}
+
+/* XiaoZhi 提示样式 */
+.xiaozhi-hint {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255, 152, 0, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 152, 0, 0.2);
+}
+
+.xiaozhi-hint p {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+}
+
+.xiaozhi-hint p + p {
+  margin-top: 4px;
 }
 </style>

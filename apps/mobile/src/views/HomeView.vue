@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
-import { ChatInput, ChatBubble, ChatHistory } from "@desktopfriends/ui";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ChatInput, ChatBubble, ChatHistory, VoiceButton } from "@desktopfriends/ui";
 import {
   useChat,
   useSettings,
   useP2P,
   useChatHistory,
+  useXiaoZhi,
   type ChatResponse,
   type ToolCall,
   type PetMessage,
@@ -41,6 +42,15 @@ const { chatHistory, addUserMessage, addPetMessage, addOtherPetMessage } =
 // 键盘处理
 const { keyboardHeight } = useKeyboard();
 
+// XiaoZhi 集成
+const xiaozhi = useXiaoZhi();
+
+// 是否使用 XiaoZhi 后端
+const useXiaozhiBackend = computed(() => settings.value.xiaozhiEnabled);
+
+// XiaoZhi 事件处理器注销函数
+const xiaozhiUnsubscribers: Array<() => void> = [];
+
 // P2P 连接
 const {
   isConnected,
@@ -74,8 +84,14 @@ const isShowingThinking = ref(false); // 是否正在显示内心独白
 const currentSpeaker = ref<string | null>(null); // 当前说话者（null 表示自己）
 const live2dRef = ref<InstanceType<typeof Live2DCanvas> | null>(null);
 
+// XiaoZhi 气泡清除定时器
+let bubbleClearTimer: ReturnType<typeof setTimeout> | null = null;
+
 // 是否已配置大模型
 const isLLMConfigured = computed(() => !!settings.value.llmApiKey);
+
+// XiaoZhi 状态（直接使用 composable 的状态）
+const isXiaozhiConnected = computed(() => xiaozhi.isConnected.value);
 
 // 从 Live2D 组件获取可用的动作和表情
 const availableExpressions = computed(
@@ -142,7 +158,25 @@ watch(
 
 // 处理用户发送的消息
 const handleSendMessage = async (message: string) => {
-  if (!message.trim() || isLoading.value) return;
+  if (!message.trim()) return;
+
+  // XiaoZhi 模式
+  if (useXiaozhiBackend.value && xiaozhi.isConnected.value) {
+    currentMessage.value = "";
+    currentThinking.value = null;
+    isShowingThinking.value = false;
+    currentSpeaker.value = null;
+
+    // 添加用户消息到历史记录
+    addUserMessage("我", `对 ${currentPet.value.name} 说: ${message}`);
+
+    // 发送到 XiaoZhi 后端
+    xiaozhi.sendText(message);
+    return;
+  }
+
+  // 原有 LLM 逻辑
+  if (isLoading.value) return;
 
   currentMessage.value = "";
   currentThinking.value = null;
@@ -374,6 +408,46 @@ const calculateDisplayDuration = (message: string): number => {
   return Math.max(minDuration, Math.min(maxDuration, duration));
 };
 
+// ============ 语音录制相关 ============
+
+// 处理语音按钮按下
+const handleVoiceStart = async () => {
+  if (!xiaozhi.isConnected.value) {
+    console.warn("[HomeView] XiaoZhi 未连接，无法录音");
+    return;
+  }
+
+  console.log("[HomeView] 开始语音录制");
+  currentMessage.value = "正在录音...";
+  currentSpeaker.value = null;
+
+  const success = await xiaozhi.startRecording();
+  if (!success) {
+    currentMessage.value = "录音启动失败";
+    setTimeout(() => {
+      currentMessage.value = "";
+    }, 2000);
+  }
+};
+
+// 处理语音按钮松开
+const handleVoiceEnd = () => {
+  if (!xiaozhi.isRecording.value) return;
+
+  console.log("[HomeView] 停止语音录制");
+  xiaozhi.stopRecording();
+
+  // 显示等待识别的提示
+  currentMessage.value = "正在识别...";
+
+  // 设置超时清除（如果服务器没有响应）
+  setTimeout(() => {
+    if (currentMessage.value === "正在识别...") {
+      currentMessage.value = "";
+    }
+  }, 10000);
+};
+
 // 处理新宠物上线
 function handlePetOnline(pet: PetInfo) {
   // 可以播放一个欢迎动作
@@ -495,6 +569,125 @@ watch(isConnected, (connected) => {
 // 注意：不要在组件卸载时断开连接
 // P2P 连接应该在整个应用生命周期内保持
 // 只有在用户明确关闭应用或禁用自动连接时才断开
+
+// ===== XiaoZhi 集成 =====
+
+// 初始化 XiaoZhi 事件监听
+const setupXiaozhiListeners = () => {
+  // 清理旧的监听器
+  xiaozhiUnsubscribers.forEach((unsub) => unsub());
+  xiaozhiUnsubscribers.length = 0;
+
+  // TTS 开始播放 - 显示文字气泡并添加到历史记录
+  xiaozhiUnsubscribers.push(
+    xiaozhi.onTTSStart((text) => {
+      console.log("[HomeView] XiaoZhi TTS sentence_start:", text);
+      // 取消之前的气泡清除定时器（因为新句子开始了）
+      if (bubbleClearTimer) {
+        clearTimeout(bubbleClearTimer);
+        bubbleClearTimer = null;
+      }
+      currentSpeaker.value = null;
+      isShowingThinking.value = false;
+      // 直接显示文字
+      currentMessage.value = text;
+      // 添加到历史记录
+      addPetMessage(currentPet.value.name, text);
+    })
+  );
+
+  // TTS 结束（服务器发送的 stop 信号）- 渐进消失气泡
+  xiaozhiUnsubscribers.push(
+    xiaozhi.onTTSEnd(() => {
+      console.log("[HomeView] XiaoZhi TTS stop 信号，开始清除气泡");
+      // 延迟清除消息，给用户一点阅读时间
+      bubbleClearTimer = setTimeout(() => {
+        bubbleClearTimer = null;
+        currentMessage.value = "";
+      }, 1500);
+    })
+  );
+
+  // LLM 回复 - 仅记录日志（历史记录由 TTS sentence_start 添加）
+  xiaozhiUnsubscribers.push(
+    xiaozhi.onLLM((text) => {
+      console.log("[HomeView] XiaoZhi LLM 回复:", text);
+      // 不在这里添加历史记录，因为 TTS sentence_start 已经添加了
+    })
+  );
+
+  // STT 识别结果 - 添加到历史记录
+  xiaozhiUnsubscribers.push(
+    xiaozhi.onSTT((text) => {
+      console.log("[HomeView] XiaoZhi STT:", text);
+      // 语音识别的文本显示为用户消息
+      addUserMessage("我", `对 ${currentPet.value.name} 说: ${text}`);
+    })
+  );
+};
+
+// 连接到 XiaoZhi 后端（简化版，连接状态由 composable 管理）
+const connectXiaozhi = async () => {
+  // 使用 composable 中已有的 MAC 地址，或从设置中获取
+  const deviceMac = settings.value.xiaozhiDeviceMac || undefined;
+
+  const result = await xiaozhi.connect({
+    otaUrl: settings.value.xiaozhiOtaUrl,
+    deviceMac: deviceMac,
+    deviceName: settings.value.xiaozhiDeviceName || currentPet.value.name,
+    autoPlayAudio: settings.value.xiaozhiAutoPlayAudio,
+  });
+
+  // 如果自动生成了 MAC 地址，保存到设置中
+  if (result.generatedMac) {
+    settings.value.xiaozhiDeviceMac = result.generatedMac;
+    console.log("[HomeView] 保存自动生成的 MAC 地址:", result.generatedMac);
+  }
+};
+
+// 断开 XiaoZhi 连接
+const disconnectXiaozhi = () => {
+  xiaozhi.disconnect();
+};
+
+// 监听 XiaoZhi 设置变化，自动连接/断开
+watch(
+  () => [
+    settings.value.xiaozhiEnabled,
+    settings.value.xiaozhiOtaUrl,
+  ] as const,
+  ([enabled, otaUrl]) => {
+    if (enabled && otaUrl) {
+      // 启用且有 URL，自动连接
+      if (!xiaozhi.isConnected.value && !xiaozhi.isConnecting.value) {
+        connectXiaozhi();
+      }
+    } else {
+      // 禁用，断开连接
+      if (xiaozhi.isConnected.value) {
+        disconnectXiaozhi();
+      }
+    }
+  },
+  { immediate: true }
+);
+
+// 组件挂载时设置 XiaoZhi 监听器
+onMounted(() => {
+  setupXiaozhiListeners();
+});
+
+// 组件卸载时清理
+onUnmounted(() => {
+  xiaozhiUnsubscribers.forEach((unsub) => unsub());
+  xiaozhiUnsubscribers.length = 0;
+  // 清理气泡清除定时器
+  if (bubbleClearTimer) {
+    clearTimeout(bubbleClearTimer);
+    bubbleClearTimer = null;
+  }
+  // 注意：不断开 XiaoZhi 连接，因为可能还需要继续使用
+});
 </script>
 
 <template>
@@ -737,7 +930,10 @@ watch(isConnected, (connected) => {
     <!-- 宠物名称标签 -->
     <div class="pet-info">
       <span class="pet-name">{{ currentPet.name }}</span>
-      <span class="ai-status" :class="{ active: isLLMConfigured }">
+      <span v-if="useXiaozhiBackend" class="xiaozhi-status" :class="{ active: isXiaozhiConnected }">
+        {{ xiaozhi.statusText.value }}
+      </span>
+      <span v-else class="ai-status" :class="{ active: isLLMConfigured }">
         {{ isLLMConfigured ? "AI" : "离线" }}
       </span>
       <span v-if="isConnected" class="p2p-status"> P2P </span>
@@ -747,12 +943,23 @@ watch(isConnected, (connected) => {
     <ChatHistory :messages="chatHistory" :pet-name="currentPet.name" />
 
     <!-- 输入区域 -->
-    <ChatInput
-      class="input-area"
+    <div
+      class="input-area-wrapper"
       :style="{ bottom: keyboardHeight > 0 ? `${keyboardHeight + 12}px` : undefined }"
-      @send="handleSendMessage"
-      :disabled="isLoading || isAutoReplying"
-    />
+    >
+      <ChatInput
+        class="input-area"
+        @send="handleSendMessage"
+        :disabled="isLoading || isAutoReplying || xiaozhi.isRecording.value"
+      />
+      <!-- 语音输入按钮 -->
+      <VoiceButton
+        v-if="isXiaozhiConnected"
+        :recording="xiaozhi.isRecording.value"
+        @start="handleVoiceStart"
+        @end="handleVoiceEnd"
+      />
+    </div>
   </div>
 </template>
 
@@ -1290,6 +1497,19 @@ watch(isConnected, (connected) => {
   color: white;
 }
 
+.xiaozhi-status {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(255, 152, 0, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.xiaozhi-status.active {
+  background: #ff9800;
+  color: white;
+}
+
 .p2p-status {
   font-size: 10px;
   padding: 2px 6px;
@@ -1298,13 +1518,20 @@ watch(isConnected, (connected) => {
   color: white;
 }
 
-.input-area {
+.input-area-wrapper {
   position: absolute;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   width: 80%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   transition: bottom 0.25s ease-out;
+}
+
+.input-area {
+  flex: 1;
 }
 
 /* Bubble animation */
@@ -1371,7 +1598,7 @@ watch(isConnected, (connected) => {
     transform: none;
   }
 
-  .input-area {
+  .input-area-wrapper {
     bottom: max(16px, env(safe-area-inset-bottom, 16px));
     left: auto;
     right: max(16px, env(safe-area-inset-right, 16px));
@@ -1391,7 +1618,7 @@ watch(isConnected, (connected) => {
     max-width: 320px;
   }
 
-  .input-area {
+  .input-area-wrapper {
     width: 50%;
     max-width: 500px;
   }

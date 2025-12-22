@@ -3,6 +3,8 @@ export { default as Live2DCanvas } from './components/Live2DCanvas.vue'
 export { default as ChatInput } from './components/ChatInput.vue'
 export { default as ChatBubble } from './components/ChatBubble.vue'
 export { default as ChatHistory } from './components/ChatHistory.vue'
+export { default as VoiceButton } from './components/VoiceButton.vue'
+export { default as XiaoZhiDebugPanel } from './components/XiaoZhiDebugPanel.vue'
 
 // Material Design UI 组件
 export { default as MdButton } from './components/ui/MdButton.vue'
